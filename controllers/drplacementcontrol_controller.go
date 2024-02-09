@@ -59,6 +59,9 @@ const (
 	MaxPlacementDecisionConflictCount = 5
 
 	DestinationClusterAnnotationKey = "drplacementcontrol.ramendr.openshift.io/destination-cluster"
+
+	DoNotDeletePVCAnnotation    = "drplacementcontrol.ramendr.openshift.io/do-not-delete-pvc"
+	DoNotDeletePVCAnnotationVal = "true"
 )
 
 var InitialWaitTimeForDRPCPlacementRule = errorswrapper.New("Waiting for DRPC Placement to produces placement decision")
@@ -1339,8 +1342,6 @@ func getPlacementRule(ctx context.Context, k8sclient client.Client,
 			log.Info("User PlacementRule replica count is not set to 1, reconciliation will only" +
 				" schedule it to a single cluster")
 		}
-
-		log.Info(fmt.Sprintf("PlacementRule Status is: (%+v)", usrPlRule.Status))
 	}
 
 	return usrPlRule, nil
@@ -1699,7 +1700,7 @@ func (r *DRPlacementControlReconciler) updateDRPCStatus(
 		return errorswrapper.Wrap(err, "failed to update DRPC status")
 	}
 
-	log.Info(fmt.Sprintf("Updated DRPC Status %+v", drpc.Status))
+	log.Info("Updated DRPC Status")
 
 	return nil
 }
@@ -1718,7 +1719,7 @@ func (r *DRPlacementControlReconciler) updateResourceCondition(
 	vrg, err := r.MCVGetter.GetVRGFromManagedCluster(drpc.Name, vrgNamespace,
 		clusterName, annotations)
 	if err != nil {
-		log.Info("Failed to get VRG from managed cluster", "errMsg", err)
+		log.Info("Failed to get VRG from managed cluster", "errMsg", err.Error())
 
 		drpc.Status.ResourceConditions = rmn.VRGConditions{}
 	} else {
@@ -1966,7 +1967,7 @@ func (r *DRPlacementControlReconciler) createOrUpdatePlacementDecision(ctx conte
 		return fmt.Errorf("failed to update placementDecision status (%w)", err)
 	}
 
-	r.Log.Info("Created/Updated PlacementDecision", "PlacementDecision", plDecision)
+	r.Log.Info("Created/Updated PlacementDecision", "PlacementDecision", plDecision.Status.Decisions)
 
 	return nil
 }
